@@ -69,7 +69,7 @@ async function run() {
     // Connect the client to the server	(optional starting in v4.7)
     // await client.connect();
 
-    const carDoctorCollection = client.db("CarDoctor").collection("CarService");
+    const jobPortalCollection = client.db("jobPortal").collection("jobs");
     const bookingCollection = client.db("CarDoctor").collection("bookings");
 
     //Tokens
@@ -94,75 +94,75 @@ async function run() {
       res.clearCookie('token', {maxAge: 0}).send({message : true})
     })
 
-    // Bookings Spot
+    // Jobs Spot
     app.get(`/services`, logger, async (req, res) => {
-      const cursor = carDoctorCollection.find();
+      const cursor = jobPortalCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
-    app.get(`/services/:id`, async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const options = {
-        // Include only the `title` and `imdb` fields in the returned document
-        projection: { title: 1, img: 1, price: 1 },
-      };
-      const result = await carDoctorCollection.findOne(query, options);
-      res.send(result);
-    });
+    // app.get(`/services/:id`, async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
+    //   const options = {
+    //     // Include only the `title` and `imdb` fields in the returned document
+    //     projection: { title: 1, img: 1, price: 1 },
+    //   };
+    //   const result = await jobPortalCollection.findOne(query, options);
+    //   res.send(result);
+    // });
 
-    app.post(`/bookings`, async (req, res) => {
-      const bookings = req.body;
-      // console.log(bookings);
-      const cookies = req.cookies.token;
-      console.log(cookies);
-      const result = await bookingCollection.insertOne(bookings);
-      res.send(result);
-    });
+    // app.post(`/bookings`, async (req, res) => {
+    //   const bookings = req.body;
+    //   // console.log(bookings);
+    //   const cookies = req.cookies.token;
+    //   console.log(cookies);
+    //   const result = await bookingCollection.insertOne(bookings);
+    //   res.send(result);
+    // });
 
-    app.get(`/bookings`, logger, verifyToken, async (req, res) => {
+    // app.get(`/bookings`, logger, verifyToken, async (req, res) => {
 
-      // const cookies = req.cookies.token;
-      // console.log(cookies);
+    //   // const cookies = req.cookies.token;
+    //   // console.log(cookies);
 
-      console.log('Main Email',req.query?.email);
-      console.log('Decoded token', req.user);
+    //   console.log('Main Email',req.query?.email);
+    //   console.log('Decoded token', req.user);
 
-      if(req.query?.email !== req.user?.email) {
-        return res.status(403).send({message: 'forbidden access'})
-      }
+    //   if(req.query?.email !== req.user?.email) {
+    //     return res.status(403).send({message: 'forbidden access'})
+    //   }
 
-      let query = {};
-      if (req.query?.email) {
-        query = { email: req.query?.email };
-      }
-      const cursor = bookingCollection.find(query);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    //   let query = {};
+    //   if (req.query?.email) {
+    //     query = { email: req.query?.email };
+    //   }
+    //   const cursor = bookingCollection.find(query);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
 
-    app.patch(`/bookings/:id`, async (req, res) => {
-      const id = req.params.id;
-      const books = req.body;
-      console.log(books);
-      const filter = { _id: new ObjectId(id) };
-      const updateBooking = {
-        $set: {
-          status: books.status,
-        },
-      };
-      const result = await bookingCollection.updateOne(filter, updateBooking);
-      res.send(result);
-    });
+    // app.patch(`/bookings/:id`, async (req, res) => {
+    //   const id = req.params.id;
+    //   const books = req.body;
+    //   console.log(books);
+    //   const filter = { _id: new ObjectId(id) };
+    //   const updateBooking = {
+    //     $set: {
+    //       status: books.status,
+    //     },
+    //   };
+    //   const result = await bookingCollection.updateOne(filter, updateBooking);
+    //   res.send(result);
+    // });
 
-    app.delete(`/bookings/:id`, async (req, res) => {
-      const id = req.params.id;
-      console.log(id);
-      const query = { _id: new ObjectId(id) };
-      const result = await bookingCollection.deleteOne(query);
-      res.send(result);
-    });
+    // app.delete(`/bookings/:id`, async (req, res) => {
+    //   const id = req.params.id;
+    //   console.log(id);
+    //   const query = { _id: new ObjectId(id) };
+    //   const result = await bookingCollection.deleteOne(query);
+    //   res.send(result);
+    // });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
