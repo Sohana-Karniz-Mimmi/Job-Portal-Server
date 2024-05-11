@@ -113,8 +113,17 @@ async function run() {
     // Save a job data in db
     app.post("/job", async (req, res) => {
       const jobData = req.body;
-      console.log(jobData);
+      // console.log(jobData);
       const result = await jobPortalCollection.insertOne(jobData);
+      res.send(result);
+    });
+
+    // delete a job data from db
+    app.delete("/job/:id", async (req, res) => {
+      const id = req.params.id;
+      console.log(id);
+      const query = { _id: new ObjectId(id) };
+      const result = await jobPortalCollection.deleteOne(query);
       res.send(result);
     });
 
