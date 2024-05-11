@@ -14,6 +14,8 @@ app.use(
     origin: [
       'http://localhost:5173',
       'http://localhost:5174',
+      'https://job-portal-3285e.web.app',
+      'https://job-portal-3285e.firebaseapp.com'
       // 'https://solosphere.web.app',
     ],
     credentials: true,
@@ -72,7 +74,7 @@ async function run() {
     const jobPortalCollection = client.db("jobPortal").collection("jobs");
     const bookingCollection = client.db("CarDoctor").collection("bookings");
 
-    //Tokens
+    //Tokens JWT Generate
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       console.log(user);
@@ -95,9 +97,16 @@ async function run() {
     })
 
     // Jobs Spot
-    app.get(`/services`, logger, async (req, res) => {
+    app.get(`/jobs`, logger, async (req, res) => {
       const cursor = jobPortalCollection.find();
       const result = await cursor.toArray();
+      res.send(result);
+    });
+
+    app.get("/job/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await jobPortalCollection.findOne(query);
       res.send(result);
     });
 
