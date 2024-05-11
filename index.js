@@ -110,6 +110,14 @@ async function run() {
       res.send(result);
     });
 
+    // Save a job data in db
+    app.post("/job", async (req, res) => {
+      const jobData = req.body;
+      console.log(jobData);
+      const result = await jobPortalCollection.insertOne(jobData);
+      res.send(result);
+    });
+
     // app.get(`/services/:id`, async (req, res) => {
     //   const id = req.params.id;
     //   const query = { _id: new ObjectId(id) };
