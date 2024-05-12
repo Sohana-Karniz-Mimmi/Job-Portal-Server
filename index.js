@@ -33,16 +33,16 @@ const logger = async (req, res, next) => {
 // verify jwt middleware
 const verifyToken = async (req, res, next) => {
   // Get token
-  const token = req.cookies.token;
+  const token = req.cookies?.token;
   // console.log("find the valid token", token);
   if (!token) {
-    return res.status(401).send({ message: "Unauthorized" });
+    return res.status(401).send({ message: "Unauthorized access" });
   }
 
   jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
     //if token is not valid... error
     if(err) {
-      return res.status(401).send({ message: 'Token is Invalid' });
+      return res.status(401).send({ message: 'Unauthorized access' });
     }
 
     // If token is valid
@@ -78,7 +78,7 @@ async function run() {
     //Tokens JWT Generate
     app.post("/jwt", async (req, res) => {
       const user = req.body;
-      console.log(user);
+      // console.log(user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
         expiresIn: "365d",
       });
@@ -95,7 +95,7 @@ async function run() {
     // Clear token on logout
     app.post('/logout', async(req, res) => {
       const user = req.body
-      console.log('User logged out');
+      // console.log('User logged out');
       res.clearCookie('token', {
         httpOnly: true,
           // secure: process.env.NODE_ENV === 'production',
@@ -157,6 +157,19 @@ async function run() {
       res.send(result);
     });
 
+     // get all jobs posted by a specific user
+     app.get('/jobs/:email', verifyToken, async (req, res) => {
+      const tokenEmail = req.user.email
+      const email = req.params.email
+      if (tokenEmail !== email) {
+        return res.status(403).send({ message: 'forbidden access' })
+      }
+      const query = { 'buyer.email': email }
+      const result = await jobPortalCollection.find(query).toArray()
+      res.send(result)
+    })
+
+
     // delete a job data from db
     app.delete("/job/:id", async (req, res) => {
       const id = req.params.id;
@@ -182,7 +195,7 @@ async function run() {
     })
 
     // get all apply for a user by email from db
-    app.get('/my-apply/:email', async (req, res) => {
+    app.get('/my-apply/:email', verifyToken, async (req, res) => {
       const email = req.params.email
       const query = { email }
       const result = await applyJobCollection.find(query).toArray()
