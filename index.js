@@ -30,6 +30,7 @@ const logger = async (req, res, next) => {
   next();
 };
 
+// verify jwt middleware
 const verifyToken = async (req, res, next) => {
   // Get token
   const token = req.cookies.token;
@@ -79,36 +80,74 @@ async function run() {
       const user = req.body;
       console.log(user);
       const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, {
-        expiresIn: "1h",
+        expiresIn: "365d",
       });
       res
         .cookie("token", token, {
           httpOnly: true,
           secure: false,
-          // sameSite: 'none',
+          // secure: process.env.NODE_ENV === 'production',
+          // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
         })
         .send({ success: true });
     });
 
+    // Clear token on logout
     app.post('/logout', async(req, res) => {
       const user = req.body
       console.log('User logged out');
-      res.clearCookie('token', {maxAge: 0}).send({message : true})
+      res.clearCookie('token', {
+        httpOnly: true,
+          // secure: process.env.NODE_ENV === 'production',
+          // sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
+          maxAge: 0,
+      }).send({message : true})
     })
 
-    // Jobs Spot
+   // Get all jobs data from db
     app.get(`/jobs`, logger, async (req, res) => {
       const cursor = jobPortalCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
+    // Get a single job data from db using job id
     app.get("/job/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await jobPortalCollection.findOne(query);
       res.send(result);
     });
+   
+    // Save a apply data in db
+    app.post('/apply', async (req, res) => {
+      const applyData = req.body
+      // console.log(applyData);
+
+      // check if its a duplicate request
+      const query = {
+        email: applyData.email,
+        jobId: applyData.jobId,
+      }
+      const alreadyApplied = await applyJobCollection.findOne(query)
+      // console.log(alreadyApplied)
+      if (alreadyApplied) {
+        return res
+          .status(400)
+          .send('You have already apply on this job.')
+      }
+
+      const result = await applyJobCollection.insertOne(applyData)
+
+      // update bid count in jobs collection
+      const updateDoc = {
+        $inc: { apply_count: 1 },
+      }
+      const jobQuery = { _id: new ObjectId(applyData.jobId) }
+      const updateApplyCount = await jobPortalCollection.updateOne(jobQuery, updateDoc)
+      // console.log(updateApplyCount)
+      res.send(result)
+    })
 
     // Save a job data in db
     app.post("/job", async (req, res) => {
@@ -142,100 +181,51 @@ async function run() {
       res.send(result)
     })
 
-    // Save a bid data in db
-    app.post('/apply', async (req, res) => {
-      const applyData = req.body
-      console.log(applyData);
-
-      // check if its a duplicate request
-      // const query = {
-      //   email: applyData.email,
-      //   jobId: applyData.jobId,
-      // }
-      // const alreadyApplied = await applyJobCollection.findOne(query)
-      // console.log(alreadyApplied)
-      // if (alreadyApplied) {
-      //   return res
-      //     .status(400)
-      //     .send('You have already placed a bid on this job.')
-      // }
-
-      const result = await applyJobCollection.insertOne(applyData)
-
-      // update bid count in jobs collection
-      // const updateDoc = {
-      //   $inc: { bid_count: 1 },
-      // }
-      // const jobQuery = { _id: new ObjectId(applyData.jobId) }
-      // const updateBidCount = await jobsCollection.updateOne(jobQuery, updateDoc)
-      // console.log(updateBidCount)
+    // get all apply for a user by email from db
+    app.get('/my-apply/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { email }
+      const result = await applyJobCollection.find(query).toArray()
       res.send(result)
     })
+
+    // Get all jobs data from db for pagination
+    app.get('/all-jobs', async (req, res) => {
+      const size = parseInt(req.query.size)
+      const page = parseInt(req.query.page) - 1
+      const filter = req.query.filter
+      const sort = req.query.sort
+      const search = req.query.search
+      // console.log(size, page)
+
+      let query = {
+        job_title: { $regex: search, $options: 'i' },
+      }
+      if (filter) query.category = filter
+      let options = {}
+      if (sort) options = { sort: { deadline: sort === 'asc' ? 1 : -1 } }
+      const result = await jobPortalCollection
+        .find(query, options)
+        .skip(page * size)
+        .limit(size)
+        .toArray()
+
+      res.send(result)
+    })
+
+     // Get all jobs data count from db
+     app.get('/jobs-count', async (req, res) => {
+      const filter = req.query.filter
+      const search = req.query.search
+      let query = {
+        job_title: { $regex: search, $options: 'i' },
+      }
+      if (filter) query.category = filter
+      const count = await jobPortalCollection.countDocuments(query)
+
+      res.send({ count })
+    })
     
-
-    // app.get(`/services/:id`, async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { _id: new ObjectId(id) };
-    //   const options = {
-    //     // Include only the `title` and `imdb` fields in the returned document
-    //     projection: { title: 1, img: 1, price: 1 },
-    //   };
-    //   const result = await jobPortalCollection.findOne(query, options);
-    //   res.send(result);
-    // });
-
-    // app.post(`/bookings`, async (req, res) => {
-    //   const bookings = req.body;
-    //   // console.log(bookings);
-    //   const cookies = req.cookies.token;
-    //   console.log(cookies);
-    //   const result = await bookingCollection.insertOne(bookings);
-    //   res.send(result);
-    // });
-
-    // app.get(`/bookings`, logger, verifyToken, async (req, res) => {
-
-    //   // const cookies = req.cookies.token;
-    //   // console.log(cookies);
-
-    //   console.log('Main Email',req.query?.email);
-    //   console.log('Decoded token', req.user);
-
-    //   if(req.query?.email !== req.user?.email) {
-    //     return res.status(403).send({message: 'forbidden access'})
-    //   }
-
-    //   let query = {};
-    //   if (req.query?.email) {
-    //     query = { email: req.query?.email };
-    //   }
-    //   const cursor = bookingCollection.find(query);
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
-
-    // app.patch(`/bookings/:id`, async (req, res) => {
-    //   const id = req.params.id;
-    //   const books = req.body;
-    //   console.log(books);
-    //   const filter = { _id: new ObjectId(id) };
-    //   const updateBooking = {
-    //     $set: {
-    //       status: books.status,
-    //     },
-    //   };
-    //   const result = await bookingCollection.updateOne(filter, updateBooking);
-    //   res.send(result);
-    // });
-
-    // app.delete(`/bookings/:id`, async (req, res) => {
-    //   const id = req.params.id;
-    //   console.log(id);
-    //   const query = { _id: new ObjectId(id) };
-    //   const result = await bookingCollection.deleteOne(query);
-    //   res.send(result);
-    // });
-
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
