@@ -72,7 +72,7 @@ async function run() {
     // await client.connect();
 
     const jobPortalCollection = client.db("jobPortal").collection("jobs");
-    const bookingCollection = client.db("CarDoctor").collection("bookings");
+    const applyJobCollection = client.db("jobPortal").collection("appliedJob");
 
     //Tokens JWT Generate
     app.post("/jwt", async (req, res) => {
@@ -126,6 +126,52 @@ async function run() {
       const result = await jobPortalCollection.deleteOne(query);
       res.send(result);
     });
+
+    // update a job in db
+    app.put('/job/:id', async (req, res) => {
+      const id = req.params.id
+      const jobData = req.body
+      const query = { _id: new ObjectId(id) }
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: {
+          ...jobData,
+        },
+      }
+      const result = await jobPortalCollection.updateOne(query, updateDoc, options)
+      res.send(result)
+    })
+
+    // Save a bid data in db
+    app.post('/apply', async (req, res) => {
+      const applyData = req.body
+      console.log(applyData);
+
+      // check if its a duplicate request
+      // const query = {
+      //   email: applyData.email,
+      //   jobId: applyData.jobId,
+      // }
+      // const alreadyApplied = await applyJobCollection.findOne(query)
+      // console.log(alreadyApplied)
+      // if (alreadyApplied) {
+      //   return res
+      //     .status(400)
+      //     .send('You have already placed a bid on this job.')
+      // }
+
+      const result = await applyJobCollection.insertOne(applyData)
+
+      // update bid count in jobs collection
+      // const updateDoc = {
+      //   $inc: { bid_count: 1 },
+      // }
+      // const jobQuery = { _id: new ObjectId(applyData.jobId) }
+      // const updateBidCount = await jobsCollection.updateOne(jobQuery, updateDoc)
+      // console.log(updateBidCount)
+      res.send(result)
+    })
+    
 
     // app.get(`/services/:id`, async (req, res) => {
     //   const id = req.params.id;
