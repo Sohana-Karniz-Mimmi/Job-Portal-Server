@@ -8,7 +8,6 @@ require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 // Middleware
-
 app.use(
   cors({
     origin: [
@@ -49,8 +48,6 @@ const verifyToken = async (req, res, next) => {
     req.user = decoded;
     next();
   });
-
-  // next()
 };
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.2xcjib6.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
