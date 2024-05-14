@@ -30,6 +30,7 @@ const logger = async (req, res, next) => {
   next();
 };
 
+
 // verify jwt middleware
 const verifyToken = async (req, res, next) => {
   // Get token
@@ -46,7 +47,7 @@ const verifyToken = async (req, res, next) => {
     }
 
     // If token is valid
-    console.log('value in token', decoded);
+    // console.log('value in token', decoded);
     req.user = decoded
     next();
   });
