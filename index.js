@@ -195,7 +195,7 @@ async function run() {
     })
 
     // get all apply for a user by email from db
-    app.get('/my-apply/:email', async (req, res) => {
+    app.get('/my-apply/:email', verifyToken, async (req, res) => {
       const email = req.params.email
       const query = { email }
       const result = await applyJobCollection.find(query).toArray()
